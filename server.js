@@ -7,6 +7,9 @@ require('dotenv').config();
 
 const app = express();
 
+// ✅ TRUST PROXY - Must be BEFORE rate limiting
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet());
 app.use(cors({
@@ -20,7 +23,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
@@ -34,16 +39,10 @@ app.use('/api/pos', require('./routes/pos'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/suppliers', require('./routes/suppliers'));
-
-// NEW ROUTES
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/returns', require('./routes/returns'));
 app.use('/api/promotions', require('./routes/promotions'));
-
-
-app.use('/api/staff', require('./routes/staff')); // If not already there
-// Add this line
 app.use('/api/staff', require('./routes/staff'));
 
 // Health check
@@ -65,7 +64,7 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Hardware Shop API Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app;
