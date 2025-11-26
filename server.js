@@ -29,7 +29,9 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Routes
+// =====================================================
+// ROUTES - NO DATABASE IMPORT NEEDED IN SERVER.JS
+// =====================================================
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/customers', require('./routes/customers'));
@@ -45,15 +47,53 @@ app.use('/api/returns', require('./routes/returns'));
 app.use('/api/promotions', require('./routes/promotions'));
 app.use('/api/staff', require('./routes/staff'));
 
+// New routes
+app.use('/api/stores', require('./routes/stores'));
+app.use('/api/opening-balances', require('./routes/openingBalances'));
+app.use('/api/grn', require('./routes/grn'));
+app.use('/api/purchase-returns', require('./routes/purchaseReturns'));
+app.use('/api/supplier-payments', require('./routes/supplierPayments'));
+app.use('/api/quotations', require('./routes/quotations'));
+app.use('/api/stock-transfer', require('./routes/stockTransfer'));
+app.use('/api/stock-adjustment', require('./routes/stockAdjustment'));
+app.use('/api/customer-payments', require('./routes/customerPayments'));
+app.use('/api/sales-returns', require('./routes/salesReturns'));
+app.use('/api/financial', require('./routes/financial'));
+
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'API is running' });
+  res.json({ 
+    status: 'OK', 
+    message: 'API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: '🔧 Hardware Shop Management System API',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      masters: ['/api/products', '/api/customers', '/api/suppliers', '/api/categories', '/api/stores'],
+      transactions: ['/api/orders', '/api/quotations', '/api/grn', '/api/purchase-returns', '/api/sales-returns'],
+      payments: ['/api/supplier-payments', '/api/customer-payments'],
+      financial: ['/api/financial/petty-cash', '/api/financial/general-receipts', '/api/financial/bank-entries'],
+      inventory: '/api/inventory',
+      pos: '/api/pos',
+      reports: '/api/reports'
+    }
+  });
 });
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('❌ Error:', err.stack);
+  res.status(500).json({ 
+    error: 'Something went wrong!',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // 404 handler
@@ -65,6 +105,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Hardware Shop API Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
 });
 
 module.exports = app;
