@@ -1,110 +1,86 @@
 const express = require('express');
 const { supabase } = require('../config/database');
+const { authMiddleware } = require('../middleware/auth');
 const router = express.Router();
 
-// GET all stores
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('stores')
       .select('*')
-      .order('store_name');
-    
+      .eq('is_active', true)
+      .order('name', { ascending: true });
     if (error) throw error;
     res.json({ stores: data || [] });
   } catch (error) {
-    console.error('Error fetching stores:', error);
+    console.error('Get stores error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// GET single store
-router.get('/:id', async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('stores')
       .select('*')
       .eq('id', req.params.id)
       .single();
-    
     if (error) throw error;
-    res.json(data);
+    res.json({ store: data });
   } catch (error) {
+    console.error('Get store error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// POST create store
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { 
-      store_code, store_name, location, address, 
-      city, state, zip_code, phone, email, is_active 
-    } = req.body;
-
-    if (!store_code || !store_name) {
-      return res.status(400).json({ error: 'Store code and name are required' });
+    const { code, name } = req.body;
+    if (!code || !name) {
+      return res.status(400).json({ error: 'Code and name are required' });
     }
-
     const { data, error } = await supabase
       .from('stores')
-      .insert([{
-        store_code,
-        store_name,
-        location,
-        address,
-        city,
-        state,
-        zip_code,
-        phone,
-        email,
-        is_active: is_active !== undefined ? is_active : true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
+      .insert([{ code, name, is_active: true }])
       .select()
       .single();
-
     if (error) throw error;
-    res.status(201).json(data);
+    res.status(201).json({ message: 'Store created successfully', store: data });
   } catch (error) {
-    console.error('Error creating store:', error);
+    console.error('Create store error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// PUT update store
-router.put('/:id', async (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const updates = { ...req.body, updated_at: new Date().toISOString() };
-    delete updates.id;
-    delete updates.created_at;
-
+    const { code, name } = req.body;
     const { data, error } = await supabase
       .from('stores')
-      .update(updates)
+      .update({ code, name })
       .eq('id', req.params.id)
       .select()
       .single();
-
     if (error) throw error;
-    res.json(data);
+    res.json({ message: 'Store updated successfully', store: data });
   } catch (error) {
+    console.error('Update store error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE store
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('stores')
-      .delete()
-      .eq('id', req.params.id);
-
+      .update({ is_active: false })
+      .eq('id', req.params.id)
+      .select()
+      .single();
     if (error) throw error;
     res.json({ message: 'Store deleted successfully' });
   } catch (error) {
+    console.error('Delete store error:', error);
     res.status(500).json({ error: error.message });
   }
 });
